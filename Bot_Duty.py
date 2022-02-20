@@ -1,10 +1,11 @@
 import telebot
 import time
 import pandas as pd
+from Token import Token
 from array import *
 
 task = []
-bot = telebot.TeleBot("508838080:AAGznXL_9EWMGJZroKC0Fg7Z2_4P87PhmTY")
+bot = telebot.TeleBot(Token)
 
 upd = bot.get_updates()
 #print(upd)
@@ -32,7 +33,7 @@ def handle_start_command(message):
     work_day = time.localtime().tm_wday
     #Так как дежурства с 9 до 9 утра, значит нам надо менять дату дежурств на один день назад, елси время до 9 утра
     if work_day == 0 and work_time<9:
-        work_day == 6
+        work_day = 6
     if work_day<5 and work_time<9:
         work_day = work_day-1
     if work_day<4 and (work_time<9 or work_time>18):
