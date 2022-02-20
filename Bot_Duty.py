@@ -8,8 +8,8 @@ bot = telebot.TeleBot("508838080:AAGznXL_9EWMGJZroKC0Fg7Z2_4P87PhmTY")
 
 upd = bot.get_updates()
 #print(upd)
-last_upd = upd[-1]
-message_from_user = last_upd.message
+#last_upd = upd[-1]
+#message_from_user = last_upd.message
 
 @bot.message_handler(commands=['start'])
 def handle_text(message):
@@ -35,7 +35,7 @@ def handle_start_command(message):
         work_day == 6
     if work_day<5 and work_time<9:
         work_day = work_day-1
-    if work_day<4 and work_time<9 or work_time>18:
+    if work_day<4 and (work_time<9 or work_time>18):
         aix_duty_name = aix_csv[['Name']].loc[[work_day]]
         aix_duty_name = aix_duty_name.to_string(index = False, header = False)
         aix_duty_phone = aix_csv[['Phone']].loc[[work_day]]
