@@ -49,6 +49,7 @@ def handle_start_command(message):
         aix_duty_phone = aix_duty_phone.to_string(index = False, header = False)
         bot.send_message(message.from_user.id, f'{aix_duty_name} \n+{aix_duty_phone} \nЭскалация AIX:/aix_escalation')
 
+
 @bot.message_handler(commands=['aix_escalation'])
 def handle_start_command(message):
     global task
@@ -86,7 +87,7 @@ def handle_start_command(message):
 def handle_start_command(message):
     global task
     if len(task) == 0:
-        bot.send_message(message.from_user.id, f'Задач нет. Для ввода новой задачи используйте /newtask')
+        bot.send_message(message.from_user.id, f'Задач нет. Для ввода новой задачи используйте ///newtask')
         return
 
     bot.send_message(message.from_user.id, f'Задачи:')
