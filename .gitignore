@@ -11,3 +11,5 @@ shd_schedule.csv
 srk_schedule.csv
 TODO
 TODO
+config.py
+__pycache__/config.cpython-310.pyc

@@ -1,10 +1,11 @@
 import telebot
 import time
 import pandas as pd
-from Token import Token, duty_message, unix_escalation
+from config import Token, duty_message, unix_escalation, to_email, from_email, email_password
 from array import *
 
 task = []
+email_check = 0
 bot = telebot.TeleBot(Token)
 
 upd = bot.get_updates()
@@ -104,6 +105,22 @@ def handle_start_command(message):
 def handle_start_command(message):
     global task
     bot.send_message(message.from_user.id, f'{duty_message}')
+
+@bot.message_handler(commands=['email'])
+def handle_start_command(message):
+    global email_check
+    bot.send_message(message.from_user.id, 'Введите текст')
+    email_check = 1
+
+
+@bot.message_handler(content_types=['text'])
+def email_send(email_message):
+    global email_check
+    if email_check == 1:
+        bot.send_message(email_message.from_user.id, 'получено')
+        email_check = 0
+
+
 
 
 @bot.message_handler(commands=['newtask'])
