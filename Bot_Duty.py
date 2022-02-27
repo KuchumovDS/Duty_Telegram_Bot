@@ -1,7 +1,7 @@
 import telebot
 import time
 import pandas as pd
-from Token import Token
+from Token import Token, duty_message, unix_escalation
 from array import *
 
 task = []
@@ -23,6 +23,9 @@ def handle_start_command(message):
     local_time = time.localtime().tm_wday
     bot.send_message(message.from_user.id, f'{local_time}')
     #print(local_time)
+
+
+
 
 @bot.message_handler(commands=['aix'])
 def handle_start_command(message):
@@ -77,13 +80,13 @@ def handle_start_command(message):
     month_day = time.localtime().tm_mday
     #duty_check = unix_schedule.isin({'{month_day}': ['X']})
 
-    if work_day<5 and work_time>5 and work_time<9:
+    if work_day<5 and work_time>4 and work_time<9:
         if (work_day % 2) == 0:
             bot.send_message(message.from_user.id, f'')
         else:
             bot.send_message(message.from_user.id, f'')
     else:
-        if work_time < 6:
+        if work_time < 5:
             work_day = work_day -1
 
         duty_unix=unix_schedule.loc[unix_schedule[f'{month_day}']=='X',['ФИО']].to_string(index = False, header = False)
@@ -93,9 +96,14 @@ def handle_start_command(message):
 @bot.message_handler(commands=['unix_escalation'])
 def handle_start_command(message):
     global task
-    unix_csv = pd.read_csv("unix.csv")
-    text = unix_csv.to_string(index = False, header = False)
-    bot.send_message(message.from_user.id, f'{text}')
+    #unix_csv = pd.read_csv("unix.csv")
+    #unix_escalation = unix_csv.to_string(index = False, header = False)
+    bot.send_message(message.from_user.id, f'{unix_escalation}')
+
+@bot.message_handler(commands=['duty'])
+def handle_start_command(message):
+    global task
+    bot.send_message(message.from_user.id, f'{duty_message}')
 
 
 @bot.message_handler(commands=['newtask'])
