@@ -1,7 +1,10 @@
 import telebot
 import time
 import pandas as pd
-from config import Token, duty_message, unix_escalation, to_email, from_email, email_password
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from config import Token, duty_message, unix_escalation, to_email, from_email, email_password, win_escalation, srk_escalation, shd_escalation, tele2_number, tele2_password
 from array import *
 
 task = []
@@ -40,7 +43,7 @@ def handle_start_command(message):
         work_day = 6
     if work_day<5 and work_time<9:
         work_day = work_day-1
-    if work_day<4 and (work_time<9 or work_time>18):
+    if work_day<4 and (work_time<9 or work_time>17):
         aix_duty_name = aix_csv[['Name']].loc[[work_day]]
         aix_duty_name = aix_duty_name.to_string(index = False, header = False)
         aix_duty_phone = aix_csv[['Phone']].loc[[work_day]]
@@ -77,22 +80,29 @@ def handle_start_command(message):
     unix_schedule = pd.read_csv("unix_schedule.csv")
     unix_csv = pd.read_csv("unix.csv")
     work_time = time.localtime().tm_hour
+    #work_time = 9
     work_day = time.localtime().tm_wday
     month_day = time.localtime().tm_mday
     #duty_check = unix_schedule.isin({'{month_day}': ['X']})
 
     if work_day<5 and work_time>4 and work_time<9:
         if (work_day % 2) == 0:
-            bot.send_message(message.from_user.id, f'')
+            #duty_unix=unix_schedule.loc[unix_schedule[f'Name']=='Холстинин Вячеслав Владимирович',['ФИО']].to_string(index = False, header = False)
+            duty_unix = 'Холстинин Вячеслав Владимирович'
+            unix_phone = unix_csv.loc[unix_csv['Name']==duty_unix, ['Phone']].to_string(index = False, header = False)
+            bot.send_message(message.from_user.id, f'{duty_unix} \n+{unix_phone} \nЭскалация Unix: /unix_escalation')
         else:
-            bot.send_message(message.from_user.id, f'')
+            #duty_unix=unix_schedule.loc[unix_schedule[f'Name']=='Челмаев-Суриков Арсений Валерьевич',['ФИО']].to_string(index = False, header = False)
+            duty_unix = 'Челмаев-Суриков Арсений Валерьевич'
+            unix_phone = unix_csv.loc[unix_csv['Name']==duty_unix, ['Phone']].to_string(index = False, header = False)
+            bot.send_message(message.from_user.id, f'{duty_unix} \n+{unix_phone} \nЭскалация Unix :/unix_escalation')
     else:
         if work_time < 5:
             work_day = work_day -1
 
         duty_unix=unix_schedule.loc[unix_schedule[f'{month_day}']=='X',['ФИО']].to_string(index = False, header = False)
         unix_phone = unix_csv.loc[unix_csv['Name']==duty_unix, ['Phone']].to_string(index = False, header = False)
-        bot.send_message(message.from_user.id, f'{duty_unix} \n+{unix_phone} \nЭскалация AIX:/unix_escalation')
+        bot.send_message(message.from_user.id, f'{duty_unix} \n+{unix_phone} \nЭскалация Unix: /unix_escalation')
 
 @bot.message_handler(commands=['unix_escalation'])
 def handle_start_command(message):
@@ -106,19 +116,41 @@ def handle_start_command(message):
     global task
     bot.send_message(message.from_user.id, f'{duty_message}')
 
-@bot.message_handler(commands=['email'])
+#@bot.message_handler(commands=['email'])
+#def handle_start_command(message):
+#    global email_check
+#    bot.send_message(message.from_user.id, 'Введите текст для отправки по почте')
+#    email_check = 1
+
+@bot.message_handler(commands=['win_escalation'])
 def handle_start_command(message):
-    global email_check
-    bot.send_message(message.from_user.id, 'Введите текст')
-    email_check = 1
+        bot.send_message(message.from_user.id, f'{win_escalation}')
+
+@bot.message_handler(commands=['srk_escalation'])
+def handle_start_command(message):
+        bot.send_message(message.from_user.id, f'{srk_escalation}')
+
+@bot.message_handler(commands=['shd_escalation'])
+def handle_start_command(message):
+        bot.send_message(message.from_user.id, f'{shd_escalation}')
+
+
+
+
 
 
 @bot.message_handler(content_types=['text'])
 def email_send(email_message):
-    global email_check
-    if email_check == 1:
-        bot.send_message(email_message.from_user.id, 'получено')
-        email_check = 0
+    message = email_message.text
+    msg = MIMEMultipart()
+    msg.attach(MIMEText(message, 'plain'))
+    server = smtplib.SMTP('smtp.gmail.com: 587')
+    server.starttls()
+    server.login(from_email, email_password)
+    server.sendmail(from_email, to_email, msg.as_string())
+    server.quit()
+    bot.send_message(email_message.from_user.id, 'Отправлено на почту дежурных')
+
 
 
 
