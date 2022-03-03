@@ -4,7 +4,7 @@ import pandas as pd
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from config import Token, duty_message, unix_escalation, to_email, from_email, email_password, win_escalation, srk_escalation, shd_escalation, tele2_number, tele2_password, Phones
+from config import Token, duty_message, unix_escalation, to_email, from_email, email_password, win_escalation, srk_escalation, shd_escalation, tele2_number, tele2_password, Phones, mon_escalation, data_center_escalation
 from array import *
 from telebot import types
 from selenium import webdriver
@@ -29,13 +29,11 @@ upd = bot.get_updates()
 def handle_text(message):
     bot.send_message(message.from_user.id, 'Здравствуйте! Вас приветствует taskbot. \nЗапись нововой задачи /newtask [Задача] \nПросмотр активных задач /mytasks \nУдаление задачи /deletetask [Номер задачи]')
 
+@bot.message_handler(commands=['help'])
+def handle_text(message):
+    bot.send_message(message.from_user.id, 'Все сообщения кроме команд, отправленные боту, будт отправлены на почту дежурного\n\nСписок команд Бота СВК:\n\n/phone - Переадресация телефона\n/duty - Телефоны дежурных смен банка\n\nUnix\n/unix - Дежурный от unix\n/unix_escalation - Эскалация unix\n/unix_phones - Все номера сотрудников unix\n\nAix\n/aix - Дежурный от aix\n/aix_escalation - Эскалация и номера сотрудников aix\n\nWindows\n/win - Дежурный от Windows\n/win_escalation - Эскалация Windows\n/win_phones - Все номера сотрудников Windows\n\nСХД\n/shd - Дежурный от СХД\n/shd_escalation - Эскалация СХД\n/shd_phones - Все номера сотрудников СХД\n\nСРК\n/srk - Дежурный от СРК\n/srk_escalation - Эскалация СРК\n/srk_phones - Все номера сотрудников СРК\n\nМониторинг\n/mon_escalation - Эскалация мониторинга\n/mon_phones - Все номера сотрудников мониторинга\n\nЦОД\n/data_center_escalation - Эскалация ЦОД')
 
-@bot.message_handler(commands=['time'])
-def handle_start_command(message):
-    global task
-    local_time = time.localtime().tm_wday
-    bot.send_message(message.from_user.id, f'{local_time}')
-    #print(local_time)
+
 
 @bot.message_handler(commands=['phone'])
 def handle_start_command(message):
@@ -62,24 +60,24 @@ def phone_handler(call):
         for cookie in pickle.load(open(f"cookies_tele2", "rb")):
             driver.add_cookie(cookie)
         driver.get("https://msk.tele2.ru/lk/settings/callforwarding-managment")
-        cookie_check = driver.find_element_by_xpath('//*[@id="root"]/div/div[1]/div/div/div/div/div[1]/div/div/div/div/section/header/section[1]/div[3]/div/div/a/span')
+        cookie_check = driver.find_element(By.XPATH, '//*[@id="root"]/div/div[1]/div/div/div/div/div[1]/div/div/div/div/section/header/section[1]/div[3]/div/div/a/span')
         if cookie_check.text == 'Войти':
             #loginbutton = driver.find_element_by_xpath('//*[@id="root"]/div/div[1]/div/div/div/div/div[1]/div/div/div/div/section/header/section[1]/div[3]/div/div/a/span')
             #loginbutton.click()
             #time.sleep(2)
-            loginbox = driver.find_element_by_xpath('//*[@id="keycloakAuth.phone"]')
+            loginbox = driver.find_element(By.XPATH,'//*[@id="keycloakAuth.phone"]')
             loginbox.send_keys(tele2_number)
             time.sleep(1)
-            loginbutton = driver.find_element_by_xpath('//*[@id="keycloakLoginModal"]/div/div/div/div/div[2]/div/form/div[2]/button')
+            loginbutton = driver.find_element(By.XPATH, '//*[@id="keycloakLoginModal"]/div/div/div/div/div[2]/div/form/div[2]/button')
             loginbutton.click()
             time.sleep(1)
-            loginbutton = driver.find_element_by_xpath('//*[@id="keycloakLoginModal"]/div/div/div/div/div[2]/div/div/div[2]/button')
+            loginbutton = driver.find_element(By.XPATH, '//*[@id="keycloakLoginModal"]/div/div/div/div/div[2]/div/div/div[2]/button')
             loginbutton.click()
             time.sleep(1)
-            loginbox = driver.find_element_by_xpath('//*[@id="keycloakAuth.password"]')
+            loginbox = driver.find_element(By.XPATH, '//*[@id="keycloakAuth.password"]')
             loginbox.send_keys(tele2_password)
             time.sleep(1)
-            loginbutton = driver.find_element_by_xpath('//*[@id="keycloakLoginModal"]/div/div/div/div/div[2]/div/form/div[2]/button[1]')
+            loginbutton = driver.find_element(By.XPATH, '//*[@id="keycloakLoginModal"]/div/div/div/div/div[2]/div/form/div[2]/button[1]')
             loginbutton.click()
             time.sleep(2)
             pickle.dump(driver.get_cookies(), open(f"cookies_tele2", "wb"))
@@ -208,15 +206,91 @@ def handle_start_command(message):
 def handle_start_command(message):
         bot.send_message(message.from_user.id, f'{win_escalation}')
 
+
+@bot.message_handler(commands=['win'])
+def handle_start_command(message):
+    win_schedule = pd.read_csv("win_schedule.csv")
+    win_csv = pd.read_csv("win.csv")
+    work_time = time.localtime().tm_hour
+    month_day = time.localtime().tm_mday
+    if work_time < 9:
+        month_day = month_day -1
+    duty_win=win_schedule.loc[win_schedule[f'{month_day}']=='Д',['ФИО']].to_string(index = False, header = False)
+    win_phone = win_csv.loc[win_csv['Name']==duty_win, ['Phone']].to_string(index = False, header = False)
+    bot.send_message(message.from_user.id, f'{duty_win} \n+{win_phone} \nЭскалация Win: /win_escalation')
+
+
+@bot.message_handler(commands=['shd'])
+def handle_start_command(message):
+    shd_schedule = pd.read_csv("shd_schedule.csv")
+    shd_csv = pd.read_csv("shd.csv")
+    work_time = time.localtime().tm_hour
+    month_day = time.localtime().tm_mday
+    if work_time < 9:
+        month_day = month_day -1
+    duty_shd=shd_schedule.loc[shd_schedule[f'{month_day}']=='Д',['ФИО']].to_string(index = False, header = False)
+    shd_phone = shd_csv.loc[shd_csv['Name']==duty_shd, ['Phone']].to_string(index = False, header = False)
+    bot.send_message(message.from_user.id, f'{duty_shd} \n+{shd_phone} \nЭскалация СХД: /shd_escalation')
+
+
+@bot.message_handler(commands=['srk'])
+def handle_start_command(message):
+    srk_schedule = pd.read_csv("srk_schedule.csv")
+    srk_csv = pd.read_csv("srk.csv")
+    work_time = time.localtime().tm_hour
+    month_day = time.localtime().tm_mday
+    if work_time < 9:
+        month_day = month_day -1
+    duty_srk=srk_schedule.loc[srk_schedule[f'{month_day}']=='Д',['ФИО']].to_string(index = False, header = False)
+    srk_phone = srk_csv.loc[srk_csv['Name']==duty_srk, ['Phone']].to_string(index = False, header = False)
+    bot.send_message(message.from_user.id, f'{duty_srk} \n+{srk_phone} \nЭскалация СРК: /srk_escalation')
+
+
 @bot.message_handler(commands=['srk_escalation'])
 def handle_start_command(message):
-        bot.send_message(message.from_user.id, f'{srk_escalation}')
+    bot.send_message(message.from_user.id, f'{srk_escalation}')
+
+@bot.message_handler(commands=['data_center_escalation'])
+def handle_start_command(message):
+    bot.send_message(message.from_user.id, f'{data_center_escalation}')
 
 @bot.message_handler(commands=['shd_escalation'])
 def handle_start_command(message):
-        bot.send_message(message.from_user.id, f'{shd_escalation}')
+    bot.send_message(message.from_user.id, f'{shd_escalation}')
 
+@bot.message_handler(commands=['mon_escalation'])
+def handle_start_command(message):
+    bot.send_message(message.from_user.id, f'{mon_escalation}', parse_mode="Markdown")
 
+@bot.message_handler(commands=['srk_phones'])
+def handle_start_command(message):
+    srk_csv = pd.read_csv("srk.csv", dtype=object)
+    srk = srk_csv.to_string(index = False, header = False)
+    bot.send_message(message.from_user.id, f'{srk}')
+
+@bot.message_handler(commands=['shd_phones'])
+def handle_start_command(message):
+    shd_csv = pd.read_csv("shd.csv", dtype=object)
+    shd = shd_csv.to_string(index = False, header = False)
+    bot.send_message(message.from_user.id, f'{shd}')
+
+@bot.message_handler(commands=['unix_phones'])
+def handle_start_command(message):
+    unix_csv = pd.read_csv("unix.csv", dtype=object)
+    unix = unix_csv.to_string(index = False, header = False)
+    bot.send_message(message.from_user.id, f'{unix}')
+
+@bot.message_handler(commands=['win_phones'])
+def handle_start_command(message):
+    win_csv = pd.read_csv("win.csv", dtype=object)
+    win = win_csv.to_string(index = False, header = False)
+    bot.send_message(message.from_user.id, f'{win}')
+
+@bot.message_handler(commands=['mon_phones'])
+def handle_start_command(message):
+    mon_csv = pd.read_csv("mon.csv", dtype=object)
+    mon = mon_csv.to_string(index = False, header = False)
+    bot.send_message(message.from_user.id, f'{mon}')
 
 
 
